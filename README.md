@@ -114,10 +114,6 @@ airplay "Wohnzimmer" {
 }
 ```
 
-## Verifiziert
-
-Ende-zu-Ende getestet auf Flint 2 (Firmware 4.11) mit HomePod (OS 27): Ö1 → OwnTone → AirPlay 2 → HomePod, inklusive automatischem Reconnect nach kurzen Verbindungsabbrüchen (`Attempting reconnection in 5 sec`, der Stream läuft weiter). Voraussetzungen: Home-App-Freigabe „Anyone on the Same Network", `user_agent` gesetzt und kein Passwort aktiv.
-
 **Warum der `user_agent` nötig ist:** Ab HomePod-Generation/OS 27 beantwortet der HomePod ein `GET /info` mit **403**, wenn der absendende Client keinen Apple-artigen User-Agent schickt. OwnTone sendet per Default `owntone/28.5` — damit kommt keine Verbindung zustande. `AirPlay/540.31` (oder `iTunes/12.9`) wird akzeptiert.
 
 ### 5. Dienst starten
@@ -179,6 +175,16 @@ trusted_networks = { "localhost", "192.168", "fd", "100." }
 ```sh
 /etc/init.d/owntone restart
 ```
+
+## Verifiziert
+
+Ende-zu-Ende getestet auf Flint 2 (Firmware 4.11) mit HomePod (OS 27): Ö1 → OwnTone → AirPlay 2 → HomePod, inklusive automatischem Reconnect nach kurzen Verbindungsabbrüchen (`Attempting reconnection in 5 sec`, der Stream läuft weiter).
+
+## Einschränkungen
+
+- **HomePods mit Passwort funktionieren derzeit nicht.** Ist in der Home-App „Require Password" aktiv, läuft das Pairing zwar an (`Pair setup stage complete`), der HomePod OS 27 weist das anschließende Session-`SETUP` aber mit **`401 Unauthorized`** zurück und OwnTone verwirft die Schlüssel wieder (`Clearing 'Wohnzimmer' pairing keys`). Umgekehrt genauso: `password` in der Config, aber Home-App ohne — dann `Pairing step 2 … authentication failure`. Läuft daher nur **ohne** Passwort (Transient Pairing).
+- **`max_volume` nicht setzen.** Kleine Werte begrenzen die Lautstärke dauerhaft; die Wiedergabe bleibt dann auch bei „voll" sehr leise.
+- Der HomePod trennt die RTSP-Verbindung gelegentlich selbst. OwnTone verbindet automatisch neu, der Stream läuft weiter.
 
 ## Enthaltene Sender-Vorlagen
 
