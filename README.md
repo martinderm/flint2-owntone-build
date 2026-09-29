@@ -105,8 +105,9 @@ user_agent = "AirPlay/540.31"
 # am Dateiende:
 airplay "Wohnzimmer" {
 	raop_disable = true
-	# Lautstärke-Obergrenze (OwnTone-Skala bis 11) - sinnvoll als Schutz
-	max_volume = 3
+	# Optional: Lautstärke-Obergrenze (OwnTone-Skala bis 11).
+	# Achtung: kleine Werte machen die Wiedergabe auch bei "voll" sehr leise.
+#	max_volume = 3
 	# Nur setzen, wenn in der Home-App "Require Password" aktiv ist.
 	# Derzeit nicht empfohlen, siehe "Bekanntes Problem".
 #	password = "<passwort>"
