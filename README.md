@@ -105,10 +105,17 @@ user_agent = "AirPlay/540.31"
 # am Dateiende:
 airplay "Wohnzimmer" {
 	raop_disable = true
-	# nur wenn in der Home-App "Require Password" gesetzt ist:
-	password = "<passwort>"
+	# Lautstärke-Obergrenze (OwnTone-Skala bis 11) - sinnvoll als Schutz
+	max_volume = 3
+	# Nur setzen, wenn in der Home-App "Require Password" aktiv ist.
+	# Derzeit nicht empfohlen, siehe "Bekanntes Problem".
+#	password = "<passwort>"
 }
 ```
+
+## Verifiziert
+
+Ende-zu-Ende getestet auf Flint 2 (Firmware 4.11) mit HomePod (OS 27): Ö1 → OwnTone → AirPlay 2 → HomePod, inklusive automatischem Reconnect nach kurzen Verbindungsabbrüchen (`Attempting reconnection in 5 sec`, der Stream läuft weiter). Voraussetzungen: Home-App-Freigabe „Anyone on the Same Network", `user_agent` gesetzt und kein Passwort aktiv.
 
 **Warum der `user_agent` nötig ist:** Ab HomePod-Generation/OS 27 beantwortet der HomePod ein `GET /info` mit **403**, wenn der absendende Client keinen Apple-artigen User-Agent schickt. OwnTone sendet per Default `owntone/28.5` — damit kommt keine Verbindung zustande. `AirPlay/540.31` (oder `iTunes/12.9`) wird akzeptiert.
 
@@ -198,8 +205,10 @@ Der HomePod stellt **drei** Hürden. Die Log-Meldung (`/var/log/owntone.log`) ze
 | :--- | :--- | :--- |
 | `Response to GET /info (probe) ... 403 Forbidden` | Zugriffsfreigabe in der Home-App zu restriktiv | Home-App → Home-Einstellungen → **Speaker & TV** → **„Anyone on the Same Network"** (oder „Everyone") |
 | dieselbe `403`, obwohl die Freigabe gesetzt ist | OwnTone sendet `owntone/28.5` als User-Agent — HomePod OS 27 lehnt das ab | `user_agent = "AirPlay/540.31"` in der `general`-Sektion |
-| `requires password authentication, but none given in config` | In der Home-App ist „Require Password" aktiv | `password = "…"` in den `airplay`-Block |
-| `Device returned an authentication failure` | Passwort falsch | Passwort korrigieren |
+| `requires password authentication, but none given in config` | In der Home-App ist „Require Password" aktiv | Entweder `password = "…"` in den `airplay`-Block eintragen — oder „Require Password" ausschalten (siehe nächste Zeile) |
+| `Pairing step 2 … authentication failure` bzw. `Response to SETUP (session) … 401 Unauthorized` | Passwort-Modus passt nicht zusammen (Home-App ohne Passwort, Config mit `password` — oder umgekehrt) | **Funktionierend verifiziert ist: „Require Password" in der Home-App aus + kein `password` in der Config** (Transient Pairing) |
+
+> Mit gesetztem Passwort läuft das Pairing (HAP) zwar an, der HomePod OS 27 weist die Session danach aber mit `401` zurück und OwnTone verwirft die Schlüssel — daher derzeit **ohne** Passwort betreiben.
 
 Aktivieren und prüfen:
 

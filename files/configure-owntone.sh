@@ -49,7 +49,11 @@ if [ -n "$PW" ]; then
 	chmod 640 "$CONF"
 	echo "Passwort in $CONF eingetragen."
 else
-	echo "Kein Passwort eingegeben - unverändert."
+	# Ohne Passwort erwartet der HomePod Transient Pairing: ein verbliebener
+	# password-Eintrag führt sonst zu "authentication failure" (Pairing step 2)
+	# bzw. "401 Unauthorized" auf SETUP (session).
+	sed -i '/^[[:space:]]*password = /d' "$CONF"
+	echo "Kein Passwort gesetzt - vorhandener Eintrag (falls vorhanden) entfernt."
 fi
 
 if /etc/init.d/owntone restart >/dev/null 2>&1; then
