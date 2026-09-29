@@ -122,11 +122,22 @@ trusted_networks = { "localhost", "192.168", "fd", "100." }
 | AirPlay-Ausgabe | schlägt fehl: `GET /info` → **403 Forbidden** (HomePod-Zugriffskontrolle) |
 | Fallback `ipv6 = no` | getestet, hilft nicht (403 ist Autorisierung, kein Transport) |
 
-## Bekanntes Problem: HomePod antwortet mit 403
+## Bekanntes Problem: HomePod-Ausgabe lässt sich nicht aktivieren
 
-Der HomePod beantwortet `GET /info` mit **403 Forbidden**, solange seine Zugriffskontrolle nur „People Sharing This Home" erlaubt. Fremdsender (OwnTone, pyatv) können sich dort nicht anmelden — sie nutzen Transient Pairing, das der HomePod nur bei passender Freigabestufe akzeptiert.
+Der HomePod stellt **drei** Hürden. Die Log-Meldung (`/var/log/owntone.log`) zeigt, an welcher es hängt:
 
-In der Home-App: Home-Einstellungen → **Speaker & TV** (Lautsprecher- & TV-Zugriff) auf **„Anyone on the Same Network"** (oder „Everyone") stellen.
+| Log-Meldung | Ursache | Lösung |
+| :--- | :--- | :--- |
+| `Response to GET /info (probe) ... 403 Forbidden` | Zugriffsfreigabe in der Home-App zu restriktiv | Home-App → Home-Einstellungen → **Speaker & TV** → „Anyone on the Same Network" (oder „Everyone") |
+| dieselbe `403`, obwohl die Freigabe gesetzt ist | OwnTone sendet `owntone/28.5` als User-Agent — HomePod OS 27 lehnt das ab | `user_agent = "AirPlay/540.31"` in der `general`-Sektion |
+| `requires password authentication, but none given in config` | In der Home-App ist „Require Password" aktiv | `password = "…"` in den `airplay`-Block |
+| `Device returned an authentication failure` | Passwort falsch | Passwort korrigieren |
+
+`files/configure-owntone.sh` richtet `user_agent`, den `airplay`-Block und optional das Passwort in einem Schritt ein:
+
+```sh
+sh /tmp/configure-owntone.sh Wohnzimmer
+```
 
 Retest (Body-Vorlage: `files/api-select-output.json`, auf dem Router z. B. unter `/tmp/`):
 
@@ -137,21 +148,6 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 ```
 
 Erwartung: `HTTP/1.1 204 No Content` statt `500`. Die Output-ID liefert `GET /api/outputs`.
-
-### Wenn zusätzlich „Require Password" gesetzt ist
-
-Passwort in den airplay-Block aufnehmen und Dienst neu starten:
-
-```
-airplay "<HomePod-Name>" {
-	raop_disable = true
-	password = "<passwort>"
-}
-```
-
-```sh
-/etc/init.d/owntone restart
-```
 
 ## Persistenz
 

@@ -84,21 +84,33 @@ opkg install /tmp/owntone_28.5-1_aarch64_cortex-a53.ipk
 ```sh
 cp /tmp/owntone.init /etc/init.d/owntone
 chmod 755 /etc/init.d/owntone
-
-cat /tmp/owntone-airplay.conf.snippet >> /etc/owntone.conf
 ```
 
 Das gepatchte Init-Skript legt bei jedem Start `/var/cache/owntone` an (Datenbank im tmpfs) und wartet beim Stoppen kurz, damit `restart` zuverlässig läuft.
 
-Das Config-Snippet erzwingt AirPlay 2 für den HomePod:
+Konfiguration setzen — Skript übernimmt alles Nötige (idempotent, fragt optional das AirPlay-Passwort verdeckt ab):
+
+```sh
+sh /tmp/configure-owntone.sh Wohnzimmer
+```
+
+> `Wohnzimmer` durch den eigenen AirPlay-Namen ersetzen. Das Skript legt den `airplay`-Block an, setzt `raop_disable = true` (erzwingt AirPlay 2), trägt den nötigen `user_agent` ein und startet den Dienst neu.
+
+Manuell entspricht das:
 
 ```
+# in der general-Sektion:
+user_agent = "AirPlay/540.31"
+
+# am Dateiende:
 airplay "Wohnzimmer" {
 	raop_disable = true
+	# nur wenn in der Home-App "Require Password" gesetzt ist:
+	password = "<passwort>"
 }
 ```
 
-> `"Wohnzimmer"` durch den eigenen AirPlay-Namen ersetzen. Ohne `raop_disable` bevorzugt OwnTone AirPlay 1 und scheitert an der PIN-Verifikation.
+**Warum der `user_agent` nötig ist:** Ab HomePod-Generation/OS 27 beantwortet der HomePod ein `GET /info` mit **403**, wenn der absendende Client keinen Apple-artigen User-Agent schickt. OwnTone sendet per Default `owntone/28.5` — damit kommt keine Verbindung zustande. `AirPlay/540.31` (oder `iTunes/12.9`) wird akzeptiert.
 
 ### 5. Dienst starten
 
@@ -178,13 +190,18 @@ https://orf-live.ors-shoutcast.at/oe1-q2a
 
 Die URLs sind Angebote Dritter (ORF, Radio France), können sich jederzeit ändern und begründen keine Rechte an den Inhalten.
 
-## Bekanntes Problem: HomePod antwortet mit 403
+## Bekanntes Problem: HomePod-Ausgabe lässt sich nicht aktivieren
 
-Solange der HomePod AirPlay nur für „Personen, die dieses Zuhause teilen" erlaubt, beantwortet er `GET /info` mit `403 Forbidden`. Fremdsender wie OwnTone können sich dort nicht anmelden (sie nutzen Transient Pairing, das der HomePod nur bei passender Freigabestufe akzeptiert).
+Der HomePod stellt **drei** Hürden. Die Log-Meldung (`/var/log/owntone.log`) zeigt, an welcher es hängt:
 
-**Lösung:** Home-App → Home-Einstellungen → **Speaker & TV** (Lautsprecher- & TV-Zugriff) auf **„Anyone on the Same Network"** (oder „Everyone").
+| Log-Meldung | Ursache | Lösung |
+| :--- | :--- | :--- |
+| `Response to GET /info (probe) ... 403 Forbidden` | Zugriffsfreigabe in der Home-App zu restriktiv | Home-App → Home-Einstellungen → **Speaker & TV** → **„Anyone on the Same Network"** (oder „Everyone") |
+| dieselbe `403`, obwohl die Freigabe gesetzt ist | OwnTone sendet `owntone/28.5` als User-Agent — HomePod OS 27 lehnt das ab | `user_agent = "AirPlay/540.31"` in der `general`-Sektion |
+| `requires password authentication, but none given in config` | In der Home-App ist „Require Password" aktiv | `password = "…"` in den `airplay`-Block |
+| `Device returned an authentication failure` | Passwort falsch | Passwort korrigieren |
 
-Danach aktivieren:
+Aktivieren und prüfen:
 
 ```sh
 curl -s -X PUT -H 'Content-Type: application/json' \
@@ -194,14 +211,7 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 
 `204 No Content` = Ausgabe aktiv. Die ID liefert `GET /api/outputs`.
 
-Ist zusätzlich „Require Password" gesetzt, das Passwort in den airplay-Block aufnehmen:
-
-```
-airplay "Wohnzimmer" {
-	raop_disable = true
-	password = "<passwort>"
-}
-```
+`sh /tmp/configure-owntone.sh <Name>` richtet `user_agent`, den `airplay`-Block und optional das Passwort in einem Schritt ein.
 
 ## Troubleshooting
 
@@ -209,7 +219,7 @@ airplay "Wohnzimmer" {
 | :--- | :--- |
 | Dienst startet nicht, Log `Could not open '/var/cache/owntone/...'` | Cache-Verzeichnis fehlt → gepatchtes Init aus `files/owntone.init` verwenden |
 | Log `Could not stat() web root directory` | Web-Dateien fehlen (nicht bei diesem Build — Paket enthält `htdocs`) |
-| Auswahl des HomePods endet mit `500` | HomePod-Freigabe, siehe oben; Ursache steht im Log (`GET /info ... 403`) |
+| Auswahl des HomePods endet mit `500` | Home-App-Freigabe, `user_agent` oder Passwort — Log-Meldung zuordnen, siehe „Bekanntes Problem" |
 | Kein Ton / falsches Gerät | HomePod in der Ausgabeliste prüfen, ggf. `raop_disable` gesetzt? |
 | `scp` bricht ab (`Connection closed`) | `-O` fehlt (Dropbear ohne SFTP) |
 | Web-UI von außen `403` | `trusted_networks` erweitern (siehe oben) |
