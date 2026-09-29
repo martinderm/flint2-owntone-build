@@ -120,7 +120,7 @@ trusted_networks = { "localhost", "192.168", "fd", "100." }
 | HomePod-Erkennung | als `type HomePod` und `type: AirPlay 2` gelistet (dank `raop_disable`) |
 | Radio-Pipeline | Ö1 (`https://orf-live.ors-shoutcast.at/oe1-q2a`) wird aufgelöst: `type: mp3`, 192 kbps, 48000 Hz, 2 ch |
 | AirPlay-Ausgabe | **funktioniert**: Ö1 → OwnTone → AirPlay 2 → HomePod (OS 27), inkl. automatischem Reconnect |
-| Nötige Zusatz-Config | `user_agent = "AirPlay/540.31"` (HomePod OS 27 lehnt `owntone/28.5` mit `403` ab), `raop_disable = true`, **kein** `password` (Home-App ohne „Require Password") |
+| Nötige Zusatz-Config | `user_agent = "AirPlay/540.31"` (HomePod OS 27 lehnt `owntone/28.5` mit `403` ab), `raop_disable = true`, **kein** `password` (Home-App ohne „Require Password"), **kein** `max_volume` (kleine Werte machen die Wiedergabe auch bei „voll" sehr leise) |
 | Fallback `ipv6 = no` | getestet, hilft nicht |
 
 ## Bekanntes Problem: HomePod-Ausgabe lässt sich nicht aktivieren
