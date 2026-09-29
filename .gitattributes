@@ -1,0 +1,6 @@
+# Normalize text files to LF — important for shell scripts and m3u playlists
+# that run on the router (CRLF would break /bin/sh).
+* text=auto eol=lf
+
+# Binaries
+*.ipk binary
