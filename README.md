@@ -254,6 +254,8 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 
 | Symptom | Ursache / Lösung |
 | :--- | :--- |
+| **Zertifikatswarnung im Browser, danach „Not Found"** | Man landet über **`https://`** auf dem Router-Webserver (nginx, selbstsigniert), nicht auf OwnTone — OwnTone 28.5 spricht **kein TLS**. Lösung: ausdrücklich `http://<router-ip>:3689` verwenden; Bookmark prüfen und ggf. das HTTPS-Upgrade des Browsers für diese Adresse abschalten. |
+| **OwnTone startet nach einem Reboot nicht** (Log: `HTTPd thread failed to start`, `Could not bind to port 3689`) | Der alte `forked-daapd` aus dem GL.iNet-Feed ist ebenfalls für Autostart aktiviert und belegt Port `3688`/`3689` zuerst. Lösung: `forked-daapd` stoppen **und** deaktivieren — `/etc/init.d/forked-daapd stop; /etc/init.d/forked-daapd disable` — danach `/etc/init.d/owntone start`. Symptom im Browser dabei: Umleitung auf `/admin.html` → „Not Found", weil das Paket keine Web-Dateien enthält. |
 | Dienst startet nicht, Log `Could not open '/var/cache/owntone/...'` | Cache-Verzeichnis fehlt → gepatchtes Init aus `files/owntone.init` verwenden |
 | Log `Could not stat() web root directory` | Web-Dateien fehlen (nicht bei diesem Build — Paket enthält `htdocs`) |
 | Auswahl des HomePods endet mit `500` | Home-App-Freigabe, `user_agent` oder Passwort — Log-Meldung zuordnen, siehe „Bekanntes Problem" |
