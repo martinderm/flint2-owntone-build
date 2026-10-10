@@ -120,6 +120,9 @@ trusted_networks = { "localhost", "192.168", "fd", "100." }
 | HomePod-Erkennung | als `type HomePod` und `type: AirPlay 2` gelistet (dank `raop_disable`) |
 | Radio-Pipeline | Ö1 (`https://orf-live.ors-shoutcast.at/oe1-q2a`) wird aufgelöst: `type: mp3`, 192 kbps, 48000 Hz, 2 ch |
 | AirPlay-Ausgabe | **funktioniert**: Ö1 → OwnTone → AirPlay 2 → HomePod (OS 27), inkl. automatischem Reconnect |
+| Signalweg (gemessen) | Internet → Flint ~270 kbit/s (HTTPS); Flint → HomePod ~1,1 Mbit/s (AirPlay 2/ALAC); iPhone/Mac nicht beteiligt |
+| Ressourcen (gemessen) | ~25 % eines Kerns ≈ 6 % des Routers, ~56 MB virtuell; im Leerlauf praktisch untätig |
+| Reboot-Verhalten | Dienst startet automatisch (`enable`), Wiedergabe **nicht** (bewusst kein Autoplay); `forked-daapd` muss deaktiviert bleiben |
 | Nötige Zusatz-Config | `user_agent = "AirPlay/540.31"` (HomePod OS 27 lehnt `owntone/28.5` mit `403` ab), `raop_disable = true`, **kein** `password` (Home-App ohne „Require Password"), **kein** `max_volume` (kleine Werte machen die Wiedergabe auch bei „voll" sehr leise) |
 | Fallback `ipv6 = no` | getestet, hilft nicht |
 

@@ -27,6 +27,37 @@ Im GL.iNet-Paketfeed steckt für den Flint 2 nur **`forked-daapd 27.2`**. Diese 
 | Web-UI im Paket | ✗ (fehlt) | ✓ |
 | AirPlay-2-Passwort-Auth | ✗ | ✓ |
 
+## Funktionsweise
+
+OwnTone ist hier **kein Empfänger, sondern der Sender**: Der Router holt den Radiostream aus dem Internet, dekodiert ihn und baut daraus einen eigenen AirPlay-2-Stream zum HomePod.
+
+```
+ Internet ──HTTPS──▶ Flint 2 (owntone) ──AirPlay 2 / ALAC──▶ HomePod
+   AAC-/MP3-Stream      dekodiert + re-encodiert            (192.168.2.235)
+```
+
+Gemessen während einer laufenden FIP-Wiedergabe (Quelle: AAC 192 kbit/s aus dem Cache-Feed), HomePod im selben LAN:
+
+| Abschnitt | Protokoll | gemessene Datenrate |
+| :--- | :--- | :--- |
+| Internet → Flint (Stream-Abruf) | HTTPS/TCP, Port 443 | **~270 kbit/s** |
+| Flint → HomePod (Audio) | AirPlay 2: RTSP-Steuerkanal Port `7000` + RTP-Audio (UDP) | **~1,1 Mbit/s** |
+
+- Das iPhone/iPad/Mac ist an **keinem** Punkt beteiligt.
+- Der HomePod holt **nichts** selbst aus dem Internet — er wird vollständig vom Router versorgt und hält dafür zusätzlich eine eigene Verbindung zu OwnTones Port `3689` (Event-/Steuerkanal).
+- Die Ausgabe ist höher als der Quellstream, weil der Router dekodiert und für AirPlay neu kodiert (ALAC).
+- Der Stream-Abruf läuft über die WAN-Seite des Routers und kann durch einen dortigen VPN-Client gehen (WireGuard).
+
+### Ressourcenbedarf (gemessen während aktiver Wiedergabe)
+
+| | Wert |
+| :--- | :--- |
+| OwnTone CPU | ~25 % **eines** Kerns (≈ 6 % des 4-Kern-Routers) |
+| OwnTone Speicher | ~56 MB virtuell |
+| System | 72 % idle, 615 MB RAM frei von 1013 MB |
+
+Der Aufwand entsteht nur beim **aktiven Streamen** (Dekodieren + Neukodieren) — im Leerlauf ist OwnTone praktisch untätig. Ein zusätzlicher Watchdog oder Cron ist damit unnötig; der Dienst startet über `/etc/init.d/owntone enable` von selbst.
+
 ## Funktionsumfang
 
 - AirPlay-2-Ausgabe (Datenbank liegt vollständig im RAM, keine Schreiblast auf der eMMC)
@@ -185,6 +216,8 @@ Ende-zu-Ende getestet auf Flint 2 (Firmware 4.11) mit HomePod (OS 27): Ö1 → O
 - **HomePods mit Passwort funktionieren derzeit nicht.** Ist in der Home-App „Require Password" aktiv, läuft das Pairing zwar an (`Pair setup stage complete`), der HomePod OS 27 weist das anschließende Session-`SETUP` aber mit **`401 Unauthorized`** zurück und OwnTone verwirft die Schlüssel wieder (`Clearing 'Wohnzimmer' pairing keys`). Umgekehrt genauso: `password` in der Config, aber Home-App ohne — dann `Pairing step 2 … authentication failure`. Läuft daher nur **ohne** Passwort (Transient Pairing).
 - **`max_volume` nicht setzen.** Kleine Werte begrenzen die Lautstärke dauerhaft; die Wiedergabe bleibt dann auch bei „voll" sehr leise.
 - Der HomePod trennt die RTSP-Verbindung gelegentlich selbst. OwnTone verbindet automatisch neu, der Stream läuft weiter.
+- **Nach einem Reboot läuft der Dienst, aber keine Wiedergabe**: Ausgang und Sender müssen manuell gestartet werden (bewusst kein Autoplay). Auswahl, Lautstärke und Queue liegen in `/var/cache/owntone` im tmpfs und sind danach weg — die Konfigurationen (`/etc/owntone.conf`, `/srv/music`) bleiben erhalten.
+- **Der alte `forked-daapd`-Dienst muss deaktiviert bleiben** (`/etc/init.d/forked-daapd disable`), sonst blockiert er beim Boot die Ports 3688/3689 und OwnTone startet nicht.
 
 ## Enthaltene Sender-Vorlagen
 
