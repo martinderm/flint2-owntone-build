@@ -1,0 +1,10 @@
+#!/bin/sh /etc/rc.common
+# Startet nach dem Booten die OwnTone-Wiedergabe (Ausgang aktivieren + Sender).
+# Nur ein Boot-Hook: "start"/"stop" aendern nichts, das eigentliche Skript
+# pollt selbst, bis OwnTone und der AirPlay-Ausgang bereit sind.
+
+START=99
+
+boot() {
+	/usr/bin/owntone-autoplay.sh >/dev/null 2>&1 &
+}
