@@ -204,6 +204,27 @@ https://orf-live.ors-shoutcast.at/oe1-q2a
 
 Die URLs sind Angebote Dritter (ORF, Radio France), können sich jederzeit ändern und begründen keine Rechte an den Inhalten.
 
+## Bedienung
+
+**Web-UI** (im LAN): `http://<router-ip>:3689` — links die Sender („Radio" bzw. „Playlists"), unten die Ausgänge (HomePod „Wohnzimmer"). Sender anklicken, Ausgang wählen, Lautstärke am Ausgang regeln.
+
+**Per API** (für Automatisierung):
+
+```sh
+# Sender starten (Queue leeren + Stream abspielen)
+curl -X POST 'http://127.0.0.1:3689/api/queue/items/add?uris=https%3A%2F%2Forf-live.ors-shoutcast.at%2Foe1-q2a&playback=start&clear=true'
+
+# pausieren / stoppen
+curl -X PUT http://127.0.0.1:3689/api/player/pause
+curl -X PUT http://127.0.0.1:3689/api/player/stop
+
+# Ausgang aktivieren/deaktivieren und Lautstärke setzen
+curl -X PUT -H 'Content-Type: application/json' -d '{"selected":true}' http://127.0.0.1:3689/api/outputs/<output-id>
+curl -X PUT -H 'Content-Type: application/json' -d '{"volume":25}'   http://127.0.0.1:3689/api/outputs/<output-id>
+```
+
+> **Nach einem Router-Neustart läuft nichts automatisch an:** Der Dienst startet zwar mit (`/etc/init.d/owntone enable`), aber Ausgang und Stream müssen neu gestartet werden. Ein Autostart ist derzeit nicht eingerichtet.
+
 ## Bekanntes Problem: HomePod-Ausgabe lässt sich nicht aktivieren
 
 Der HomePod stellt **drei** Hürden. Die Log-Meldung (`/var/log/owntone.log`) zeigt, an welcher es hängt:
