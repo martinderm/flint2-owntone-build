@@ -54,8 +54,7 @@ Alle Befehle auf dem Router per SSH als `root`.
 ```sh
 # vom eigenen Rechner aus, in der Repo-Wurzel:
 scp -O ipk/owntone_28.5-1_aarch64_cortex-a53.ipk root@<router>:/tmp/
-scp -O files/owntone.init files/owntone-airplay.conf.snippet files/api-select-output.json \
-       files/owntone-autoplay.sh files/owntone-autoplay.init root@<router>:/tmp/
+scp -O files/owntone.init files/owntone-airplay.conf.snippet files/api-select-output.json root@<router>:/tmp/
 ```
 
 > `-O` ist zwingend: Dropbear hat keinen SFTP-Server, moderne `scp`-Clients scheitern sonst mit `sftp-server: not found`.
@@ -85,12 +84,6 @@ opkg install /tmp/owntone_28.5-1_aarch64_cortex-a53.ipk
 ```sh
 cp /tmp/owntone.init /etc/init.d/owntone
 chmod 755 /etc/init.d/owntone
-
-# optional: Wiedergabe nach dem Booten automatisch starten
-cp /tmp/owntone-autoplay.sh /usr/bin/owntone-autoplay.sh
-cp /tmp/owntone-autoplay.init /etc/init.d/owntone-autoplay
-chmod 755 /usr/bin/owntone-autoplay.sh /etc/init.d/owntone-autoplay
-/etc/init.d/owntone-autoplay enable
 ```
 
 Das gepatchte Init-Skript legt bei jedem Start `/var/cache/owntone` an (Datenbank im tmpfs) und wartet beim Stoppen kurz, damit `restart` zuverlässig läuft.
@@ -230,17 +223,9 @@ curl -X PUT -H 'Content-Type: application/json' -d '{"selected":true}' http://12
 curl -X PUT -H 'Content-Type: application/json' -d '{"volume":25}'   http://127.0.0.1:3689/api/outputs/<output-id>
 ```
 
-> **Nach einem Router-Neustart läuft nichts automatisch an:** Der Dienst startet mit (`/etc/init.d/owntone enable`), Ausgang und Stream nicht. Dafür gibt es den optionalen Boot-Hook:
-
-```sh
-scp -O files/owntone-autoplay.sh   root@<router>:/usr/bin/owntone-autoplay.sh
-scp -O files/owntone-autoplay.init root@<router>:/etc/init.d/owntone-autoplay
-ssh root@<router> "chmod 755 /usr/bin/owntone-autoplay.sh /etc/init.d/owntone-autoplay && /etc/init.d/owntone-autoplay enable"
-```
-
-`owntone-autoplay.sh` pollt nach dem Boot, bis OwnTone antwortet und der Ausgang per mDNS gefunden wurde, aktiviert ihn mit der gewünschten Lautstärke und startet den Sender. Standard: Wohnzimmer / OE1 / Lautstärke 30 — überschreibbar per Argument oder in der Datei. Protokoll: `logread | grep owntone-autoplay`.
-
-> Die Wiedergabe-Zustände (Auswahl, Lautstärke, Queue) liegen in `/var/cache/owntone` im tmpfs und sind nach einem Reboot weg — der Autostart setzt sie neu. Die Konfigurationen (`/etc/owntone.conf`, `/srv/music`) liegen auf der eMMC und bleiben erhalten.
+> **Nach einem Router-Neustart** läuft OwnTone automatisch (der Dienst ist per `/etc/init.d/owntone enable` aktiviert), **aber es spielt nichts** — Ausgang und Sender müssen manuell gestartet werden (Web-UI oder API). Ein Autostart der Wiedergabe ist bewusst nicht eingerichtet.
+>
+> **Wichtig für den Neustart:** Der alte `forked-daapd` aus dem GL.iNet-Feed muss deaktiviert bleiben (`/etc/init.d/forked-daapd disable`), sonst belegt er beim Boot Port 3688/3689 und OwnTone kann nicht starten (`HTTPd thread failed to start`).
 
 ## Bekanntes Problem: HomePod-Ausgabe lässt sich nicht aktivieren
 
